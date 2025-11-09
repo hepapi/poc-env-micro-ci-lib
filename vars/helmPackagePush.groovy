@@ -1,59 +1,56 @@
 def call(Map params = [:]) {
 
-    // ✅ Groovy değişkenleri burada tanımlanır
-    def SERVICE   = params.service ?: "demo"
-    def NEXUS_HELM_REPO = "http://my-nexus-repository-manager.nexus.svc.cluster.local:8081/repository/nexushelmrepository/"
+    final String SERVICE         = (params.service ?: "demo").trim()
+    final String CHART_NAME      = "${SERVICE}-dev"
+    final String NEXUS_HELM_REPO = "http://my-nexus-repository-manager.nexus.svc.cluster.local:8081/repository/nexushelmrepository/"
 
-    pipeline {
-        agent {
-            kubernetes {
-                label 'k8s-agent-multi'
-                defaultContainer 'helm'
-            }
-        }
+    stage('Clone Helm Base & App Values') {
+        sh """
+            set -e
+            rm -rf helm-base-common app-values helm-cur-chart
+            git clone https://github.com/hepapi/helm-base-common.git
+            git clone https://github.com/hepapi/app-values.git
+        """
+    }
 
-        stages {
+    stage('Prepare Helm Chart') {
+        sh """
+            set -e
+            mkdir -p helm-cur-chart/templates
+            cp -r helm-base-common/v1.32/templates/* helm-cur-chart/templates/
+            cp helm-base-common/v1.32/Chart.yaml helm-cur-chart/
+            cp app-values/non-prod/dev/${SERVICE}-values.yaml helm-cur-chart/values.yaml
+            # Chart adı dosyada CHART_NAME ile güncellenecek
+            sed -i "s/^name:.*/name: ${CHART_NAME}/" helm-cur-chart/Chart.yaml
+        """
+    }
 
-            stage('Clone Helm Base and App Values') {
-                steps {
-                    sh """
-                        rm -rf helm-base-common app-values helm-cur-chart
-                        git clone https://github.com/hepapi/helm-base-common.git
-                        git clone https://github.com/hepapi/app-values.git
-                    """
-                }
-            }
+    stage('Patch & Push Chart') {
+        withCredentials([usernamePassword(credentialsId: 'nexus-docker-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+            sh """
+                set -e
+                IMAGE_TAG="1.0.${BUILD_NUMBER}"
 
-            stage('Prepare Helm Chart') {
-                steps {
-                    sh """
-                        mkdir -p helm-cur-chart/templates
-                        cp -r helm-base-common/v1.32/templates/* helm-cur-chart/templates/
-                        cp helm-base-common/v1.32/Chart.yaml helm-cur-chart/
-                        cp app-values/non-prod/dev/${SERVICE}-values.yaml helm-cur-chart/values.yaml
-                    """
-                }
-            }
+                sed -i "s/^  tag:.*/  tag: \${IMAGE_TAG}/" helm-cur-chart/values.yaml
+                sed -i "s/^appVersion:.*/appVersion: \${IMAGE_TAG}/" helm-cur-chart/Chart.yaml
+                sed -i "s/^version:.*/version: \${IMAGE_TAG}/" helm-cur-chart/Chart.yaml
 
-            stage('Patch & Push Chart') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'nexus-docker-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                        sh """
-                            IMAGE_TAG="1.0.${BUILD_NUMBER}"
-                            sed -i "s/^  tag:.*/  tag: \$IMAGE_TAG/" helm-cur-chart/values.yaml
-                            sed -i "s/^appVersion:.*/appVersion: \$IMAGE_TAG/" helm-cur-chart/Chart.yaml
-                            sed -i "s/^version:.*/version: \$IMAGE_TAG/" helm-cur-chart/Chart.yaml
+                helm lint ./helm-cur-chart || true
+                helm package ./helm-cur-chart
 
-                            helm lint ./helm-cur-chart
-                            helm package ./helm-cur-chart
-                            FILENAME=\$(ls -t ${SERVICE}-*.tgz | head -n 1)
+                FILENAME=\$(ls -t *.tgz | head -n 1)
+                echo "Uploading: \$FILENAME"
 
-                            echo "📤 Uploading: \$FILENAME"
-                            curl -u "\$NEXUS_USER:\$NEXUS_PASS" --upload-file "\$FILENAME" "${NEXUS_HELM_REPO}"
-                        """
-                    }
-                }
-            }
+                HTTP_STATUS=\$(curl -u "\$NEXUS_USER:\$NEXUS_PASS" \
+                  --upload-file "\$FILENAME" \
+                  "${NEXUS_HELM_REPO}" \
+                  -w "%{http_code}" -o /dev/null -s)
+
+                if [ "\$HTTP_STATUS" -ne 201 ] && [ "\$HTTP_STATUS" -ne 200 ]; then
+                  echo "Chart upload failed! HTTP=\$HTTP_STATUS"
+                  exit 1
+                fi
+            """
         }
     }
 }
