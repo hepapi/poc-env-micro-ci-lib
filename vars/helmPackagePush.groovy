@@ -1,17 +1,21 @@
 import org.hepapi.microcilib.Config
 
 def call(Map params = [:]) {
-  final String service        = (params.service ?: "demo") as String
-  final String chartName      = (params.chartName ?: "${service}-dev") as String
-  final String helmValuesFile = (params.helmValuesFile ?: "non-prod/dev/${service}-values.yaml") as String
+  final String service        = (params.service ?: "").trim()
+  final String environment    = (params.environment ?: "dev").trim()
+  final String chartName      = (params.chartName ?: "${service}-${environment}").trim()
+  final String helmValuesFile = (params.helmValuesFile ?: "non-prod/${environment}/${service}-values.yaml").trim()
 
-  // Opsiyonel override’lar (istersen değiştir)
   final String helmBaseRepo   = (params.helmBaseRepo ?: "https://github.com/hepapi/helm-base-common.git") as String
   final String appValuesRepo  = (params.appValuesRepo ?: "https://github.com/hepapi/app-values.git") as String
   final String helmBasePath   = (params.helmBasePath ?: "v1.32") as String
 
   final String helmRepoUrl    = (params.helmRepoUrl ?: Config.HELM_REPO) as String
   final String credsId        = (params.credsId     ?: Config.CREDS_ID) as String
+
+  if (!service) {
+    error "[helmPackagePush] 'service' parametresi zorunludur."
+  }
 
   try {
     container('helm') {
@@ -27,29 +31,28 @@ def call(Map params = [:]) {
         cp helm-base-common/'${helmBasePath}'/Chart.yaml helm-cur-chart/Chart.yaml
         cp app-values/'${helmValuesFile}' helm-cur-chart/values.yaml
 
-        # Version aynı build numarasından üretilecek
         IMAGE_TAG="1.0.${BUILD_NUMBER}"
         echo "\$IMAGE_TAG" > version.txt
+        VERSION=\$(cat version.txt)
 
-        IMAGE_TAG=\$(cat version.txt)
-        # values.yaml içindeki image.tag alanı (varsa) güncellenir
-        sed -i "s/^\\(\\s*tag:\\).*/\\1 \${IMAGE_TAG}/" helm-cur-chart/values.yaml || true
+        # Helm metadata patch
+        sed -i "s/^name:.*/name: ${chartName}/" helm-cur-chart/Chart.yaml
+        sed -i "s/^version:.*/version: \${VERSION}/"     helm-cur-chart/Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: \${VERSION}/" helm-cur-chart/Chart.yaml
 
-        # Chart meta
-        sed -i "s/^appVersion:.*/appVersion: \${IMAGE_TAG}/" helm-cur-chart/Chart.yaml
-        sed -i "s/^version:.*/version: \${IMAGE_TAG}/"     helm-cur-chart/Chart.yaml
-        sed -i "s/^name:.*/name: ${chartName}/"            helm-cur-chart/Chart.yaml
+        # Values.yaml içindeki tag + repo update
+        sed -i "s/\\(tag:\\).*/\\1 \${VERSION}/" helm-cur-chart/values.yaml || true
+        sed -i "s/\\(repository:\\).*/\\1 ${Config.REGISTRY}\\/${Config.IMAGE_REPO}\/${service}-${environment}/" helm-cur-chart/values.yaml || true
 
         helm lint ./helm-cur-chart || true
         helm package ./helm-cur-chart
-
-        ls -lt
       """
 
       withCredentials([usernamePassword(credentialsId: credsId, usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
         sh """
           set -euxo pipefail
           FILENAME=\$(ls -t ${chartName}-*.tgz | head -n 1)
+
           echo "📦 Upload: \$FILENAME -> ${helmRepoUrl}"
 
           HTTP_STATUS=\$(curl -u "\$NEXUS_USER:\$NEXUS_PASS" \
