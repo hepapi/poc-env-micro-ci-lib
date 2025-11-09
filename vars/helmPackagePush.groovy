@@ -35,14 +35,16 @@ def call(Map params = [:]) {
         echo "\$IMAGE_TAG" > version.txt
         VERSION=\$(cat version.txt)
 
-        # Helm metadata patch
+        # Chart metadata
         sed -i "s/^name:.*/name: ${chartName}/" helm-cur-chart/Chart.yaml
-        sed -i "s/^version:.*/version: \${VERSION}/"     helm-cur-chart/Chart.yaml
+        sed -i "s/^version:.*/version: \${VERSION}/" helm-cur-chart/Chart.yaml
         sed -i "s/^appVersion:.*/appVersion: \${VERSION}/" helm-cur-chart/Chart.yaml
 
-        # Values.yaml içindeki tag + repo update
-        sed -i "s/\\(tag:\\).*/\\1 \${VERSION}/" helm-cur-chart/values.yaml || true
-        sed -i "s/\\(repository:\\).*/\\1 ${Config.REGISTRY}\\/${Config.IMAGE_REPO}\/${service}-${environment}/" helm-cur-chart/values.yaml || true
+        # Update image tag
+        sed -i "s#\\(tag:\\).*#\\1 \${VERSION}#" helm-cur-chart/values.yaml || true
+
+        # Update image repo
+        sed -i "s#\\(repository:\\).*#\\1 ${Config.REGISTRY}/${Config.IMAGE_REPO}/${service}-${environment}#" helm-cur-chart/values.yaml || true
 
         helm lint ./helm-cur-chart || true
         helm package ./helm-cur-chart
