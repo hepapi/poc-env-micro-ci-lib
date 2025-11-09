@@ -55,7 +55,7 @@ def call(Map params = [:]) {
           set -euxo pipefail
           FILENAME=\$(ls -t ${chartName}-*.tgz | head -n 1)
 
-          echo "📦 Upload: \$FILENAME -> ${helmRepoUrl}"
+          echo "Upload: \$FILENAME -> ${helmRepoUrl}"
 
           HTTP_STATUS=\$(curl -u "\$NEXUS_USER:\$NEXUS_PASS" \
             --upload-file "\$FILENAME" \
@@ -63,10 +63,10 @@ def call(Map params = [:]) {
             -w "%{http_code}" -o /dev/null -s)
 
           if [ "\$HTTP_STATUS" != "200" ] && [ "\$HTTP_STATUS" != "201" ]; then
-            echo "❌ Chart upload failed (HTTP \$HTTP_STATUS)"
+            echo "Chart upload failed (HTTP \$HTTP_STATUS)"
             exit 1
           fi
-          echo "✅ Chart uploaded"
+          echo "Chart uploaded"
         """
       }
     }

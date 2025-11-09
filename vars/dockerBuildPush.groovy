@@ -9,7 +9,7 @@ def call(Map params = [:]) {
   final String gitBranch      = (params.gitBranch ?: "main") as String
   final String dockerfileName = (params.dockerfileName ?: "Dockerfile") as String
   final String contextPath    = (params.contextPath ?: ".") as String
-  final String environment    = (params.environment ?: "dev") as String   // ✅ yeni parametre
+  final String environment    = (params.environment ?: "dev") as String   
 
   // Config defaults
   final String registry  = (params.registry ?: Config.REGISTRY) as String
@@ -41,15 +41,15 @@ def call(Map params = [:]) {
           echo "\$PASS" | docker login "http://${registry}" -u "\$USER" --password-stdin
 
           cd srcrepo/'${contextPath}'
-          test -f '${dockerfileName}' || { echo "❌ Dockerfile bulunamadı: ${dockerfileName}"; ls -al; exit 1; }
+          test -f '${dockerfileName}' || { echo "Dockerfile bulunamadı: ${dockerfileName}"; ls -al; exit 1; }
 
           IMAGE_TAG="\$(cat version.txt)"
           FULL_IMAGE="${registry}/${imageRepo}/${service}-${environment}:\$IMAGE_TAG"
 
-          echo "🐳 Build: \$FULL_IMAGE"
+          echo "Build: \$FULL_IMAGE"
           docker build -t "\$FULL_IMAGE" -f "${dockerfileName}" .
 
-          echo "📤 Push: \$FULL_IMAGE"
+          echo "Push: \$FULL_IMAGE"
           docker push "\$FULL_IMAGE"
         """
       }
