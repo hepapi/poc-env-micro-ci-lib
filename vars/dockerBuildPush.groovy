@@ -46,13 +46,32 @@ def call(Map params = [:]) {
           IMAGE_TAG="\$(cat version.txt)"
           FULL_IMAGE="${registry}/${imageRepo}/${service}-${environment}:\$IMAGE_TAG"
 
-          echo "Build: \$FULL_IMAGE"
+          echo "📦 Build: \$FULL_IMAGE"
           docker build -t "\$FULL_IMAGE" -f "${dockerfileName}" .
 
-          echo "Push: \$FULL_IMAGE"
+          echo "🚀 Push: \$FULL_IMAGE"
           docker push "\$FULL_IMAGE"
+
+          # Export image bilgilerini pipeline environment'a yaz
+          echo "REGISTRY=${registry}"   >  build_env.txt
+          echo "REPO_PATH=${imageRepo}" >> build_env.txt
+          echo "IMAGE_NAME=${service}-${environment}" >> build_env.txt
         """
       }
+
+      // 🔹 Jenkins environment’a import et
+      script {
+        def envFile = readFile('srcrepo/' + contextPath + '/build_env.txt').trim().split('\n')
+        envFile.each {
+          def (key, value) = it.split('=')
+          env[key.trim()] = value.trim()
+        }
+      }
+
+      echo "✅ Environment set:"
+      echo "   REGISTRY:   ${env.REGISTRY}"
+      echo "   REPO_PATH:  ${env.REPO_PATH}"
+      echo "   IMAGE_NAME: ${env.IMAGE_NAME}"
     }
   } catch (e) {
     error "[dockerBuildPush] Hata: ${e.getMessage()}"
