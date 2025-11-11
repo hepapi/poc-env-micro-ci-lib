@@ -1,7 +1,6 @@
 // ───────────────────────────────────────────────────────────────
 // vars/sonarScan.groovy
-// SonarQube kod analizi
-// Kullanım: sonarScan(enable: 'enable')
+// SonarQube kod analizi — SERVICE değişkenini otomatik algılar
 // ───────────────────────────────────────────────────────────────
 
 def call(Map params = [:]) {
@@ -10,22 +9,41 @@ def call(Map params = [:]) {
     return
   }
 
-  def projectKey  = params.get('projectKey', env.JOB_NAME)
-  def projectName = params.get('projectName', projectKey)
+  // Jenkinsfile'daki SERVICE değişkenini otomatik al
+  def serviceName = env.SERVICE ?: params.get('service', '')
+  if (!serviceName?.trim()) {
+    echo "⚠️ SERVICE environment variable not found! Using JOB_NAME as fallback."
+    serviceName = env.JOB_NAME
+  }
+
+  // Otomatik Project Key ve Name
+  def projectKey  = "${serviceName}".toLowerCase()
+  def projectName = "${serviceName}-${env.ENV ?: 'default'}"
+
+  // 🔥 spring-petclinic örneğinde pom.xml repo kökünde
+  // ama genelde src/<service> içinde olabiliyor.
+  // Otomatik kontrol ekledik:
+  def sourceDir = fileExists("srcrepo/src/${serviceName}/pom.xml") 
+    ? "srcrepo/src/${serviceName}" 
+    : "srcrepo"
 
   container('maven') {
-    withSonarQubeEnv('sonar-server') {
-      withCredentials([string(credentialsId: 'sonar-hepapi', variable: 'SONAR_TOKEN')]) {
-        sh """
-          mvn clean verify sonar:sonar \
-            -DskipTests=false \
-            -Ddependency-check.skip=true \
-            -Dsonar.projectKey=${projectKey} \
-            -Dsonar.projectName=${projectName} \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN
-        """
+    dir(sourceDir) {
+      withSonarQubeEnv('sonar-server') {
+        withCredentials([string(credentialsId: 'sonar-hepapi', variable: 'SONAR_TOKEN')]) {
+          sh """
+            mvn clean verify sonar:sonar \
+              -DskipTests=false \
+              -Ddependency-check.skip=true \
+              -Dsonar.projectKey=${projectKey} \
+              -Dsonar.projectName=${projectName} \
+              -Dsonar.host.url=$SONAR_HOST_URL \
+              -Dsonar.login=$SONAR_TOKEN
+          """
+        }
       }
     }
   }
+
+  echo "✅ SonarQube analysis completed for project: ${projectName}"
 }
