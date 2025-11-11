@@ -5,10 +5,13 @@
 // ───────────────────────────────────────────────────────────────
 
 def call(Map params = [:]) {
-  def severity = params.get('severity', 'CRITICAL')
-  def image    = params.get('image', '')
+  def severity   = params.get('severity', 'CRITICAL')
+  def registry   = params.get('registry', env.REGISTRY ?: '')
+  def repoPath   = params.get('repoPath', env.REPO_PATH ?: '')
+  def imageName  = params.get('imageName', env.IMAGE_NAME ?: '')
+  def image      = params.get('image', '')
 
-  // 🔍 version.txt hem root’ta hem srcrepo’da olabilir
+  // version.txt araması
   def versionFile = fileExists('version.txt') ? 'version.txt' :
                     fileExists('srcrepo/version.txt') ? 'srcrepo/version.txt' : null
 
@@ -18,7 +21,7 @@ def call(Map params = [:]) {
 
   if (!image?.trim()) {
     image = sh(
-      script: "cat ${versionFile} | xargs -I {} echo \"${env.REGISTRY}/${env.REPO_PATH}/${env.IMAGE_NAME}:{}\"",
+      script: "cat ${versionFile} | xargs -I {} echo \"${registry}/${repoPath}/${imageName}:{}\"",
       returnStdout: true
     ).trim()
   }
@@ -32,4 +35,5 @@ def call(Map params = [:]) {
     """
   }
 }
+
 
