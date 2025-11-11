@@ -5,18 +5,20 @@
 // ───────────────────────────────────────────────────────────────
 
 def call(Map params = [:]) {
-
-  if (params.get('enable', '') != 'enable' && params.get('trivy', '') != 'enable') {
-    echo "⏭️ Trivy scan skipped (not enabled)"
-    return
-  }
-
   def severity = params.get('severity', 'CRITICAL')
   def image    = params.get('image', '')
 
+  // 🔍 version.txt hem root’ta hem srcrepo’da olabilir
+  def versionFile = fileExists('version.txt') ? 'version.txt' :
+                    fileExists('srcrepo/version.txt') ? 'srcrepo/version.txt' : null
+
+  if (!versionFile) {
+    error "❌ version.txt not found in workspace or srcrepo!"
+  }
+
   if (!image?.trim()) {
     image = sh(
-      script: "cat version.txt | xargs -I {} echo \"${env.REGISTRY}/${env.REPO_PATH}/${env.IMAGE_NAME}:{}\"",
+      script: "cat ${versionFile} | xargs -I {} echo \"${env.REGISTRY}/${env.REPO_PATH}/${env.IMAGE_NAME}:{}\"",
       returnStdout: true
     ).trim()
   }
@@ -29,6 +31,5 @@ def call(Map params = [:]) {
       ${image}
     """
   }
-
-  echo "✅ Trivy scan completed successfully."
 }
+
