@@ -1,7 +1,7 @@
 @Library('poc-env-micro-ci-lib') _
 
 def SERVICE = 'shippingservice'
-def ENV = 'dev'   
+def ENV = 'dev'
 
 pipeline {
   agent {
@@ -11,11 +11,12 @@ pipeline {
   }
 
   stages {
+
     stage('Docker Build & Push') {
       steps {
         dockerBuildPush(
           service: SERVICE,
-          environment: ENV,  
+          environment: ENV,
           gitRepo: 'https://github.com/hepapi/poc-env-microservices-demo.git',
           gitBranch: 'main',
           dockerfileName: 'Dockerfile',
@@ -24,15 +25,40 @@ pipeline {
       }
     }
 
+    stage('Security Scan') {
+      steps {
+        securityScan(
+          trivy: 'enable',
+          conftest: 'enable',
+          sonar: 'enable'
+        )
+      }
+    }
+
+    stage('Manual Approval') {
+      steps {
+        manualApproval(status: 'enable')
+      }
+    }
+
     stage('Helm Package & Push') {
       steps {
         helmPackagePush(
           service: SERVICE,
-          environment: ENV,  
+          environment: ENV,
           helmValuesFile: "non-prod/${ENV}/${SERVICE}-values.yaml",
-          chartName: "${SERVICE}-${ENV}"  
+          chartName: "${SERVICE}-${ENV}"
         )
       }
+    }
+  }
+
+  post {
+    success {
+      notifyStatus(status: 'success')
+    }
+    failure {
+      notifyStatus(status: 'failure')
     }
   }
 }
