@@ -4,21 +4,35 @@
 // Kullanım: manualApproval(approval: 'enable')
 // ───────────────────────────────────────────────────────────────
 
-def call(Map params = [:]) {
+// vars/manualApproval.groovy
 
-  boolean requireApproval = params.get('approval', '') == 'enable'
+def call(Map params = [:]) {
+  boolean requireApproval = (params.get('approval', '') == 'enable') || (params.get('status', '') == 'enable')
   String notifyEmail      = params.get('email', 'necipulusoyy@gmail.com')
 
   stage('Manual Approval Before Helm Push') {
     script {
       if (!requireApproval) {
-        echo "🟡 Manual approval skipped (approval != 'enable')"
+        echo "🟡 Manual approval skipped (approval/status != 'enable')"
         return
       }
 
-      echo "✉️ Sending approval request email..."
-      def IMAGE_TAG = sh(script: "cat version.txt", returnStdout: true).trim()
+      // version.txt hem root’ta hem srcrepo’da olabilir
+      String versionFile = null
+      if (fileExists('version.txt')) {
+        versionFile = 'version.txt'
+      } else if (fileExists('srcrepo/version.txt')) {
+        versionFile = 'srcrepo/version.txt'
+      }
 
+      String imageTag = 'N/A'
+      if (versionFile) {
+        imageTag = sh(script: "cat ${versionFile}", returnStdout: true).trim()
+      } else {
+        echo "⚠️ version.txt not found in root or srcrepo — continuing without tag info"
+      }
+
+      echo "✉️ Sending approval request email..."
       emailext(
         to: notifyEmail,
         subject: "Approval Required: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
@@ -27,7 +41,7 @@ Yeni versiyon hazır, deployment onayı bekleniyor.
 
 Proje: ${env.JOB_NAME}
 Build #: ${env.BUILD_NUMBER}
-Image Tag: ${IMAGE_TAG}
+Image Tag: ${imageTag}
 Jenkins URL: ${env.BUILD_URL}
 
 Lütfen Jenkins arayüzünden onay verin.
