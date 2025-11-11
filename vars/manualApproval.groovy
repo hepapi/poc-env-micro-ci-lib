@@ -1,24 +1,24 @@
 // ───────────────────────────────────────────────────────────────
 // vars/manualApproval.groovy
 // Opsiyonel manuel onay ve e-posta bildirim adımı
-// Default: approval = false
+// Kullanım: manualApproval(approval: 'enable')
 // ───────────────────────────────────────────────────────────────
 
 def call(Map params = [:]) {
 
-  boolean requireApproval = params.get('approval', false)
-  String notifyEmail       = params.get('email', 'necipulusoyy@gmail.com')
+  boolean requireApproval = params.get('approval', '') == 'enable'
+  String notifyEmail      = params.get('email', 'necipulusoyy@gmail.com')
 
   stage('Manual Approval Before Helm Push') {
     script {
       if (!requireApproval) {
-        echo "🟡 Manual approval skipped (approval=false or not set)"
+        echo "🟡 Manual approval skipped (approval != 'enable')"
         return
       }
 
       echo "✉️ Sending approval request email..."
-
       def IMAGE_TAG = sh(script: "cat version.txt", returnStdout: true).trim()
+
       emailext(
         to: notifyEmail,
         subject: "Approval Required: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
@@ -37,43 +37,8 @@ Lütfen Jenkins arayüzünden onay verin.
       timeout(time: 15, unit: 'MINUTES') {
         input message: "Helm chart Nexus'a push edilsin ve ArgoCD tarafından deployment başlatılsın mı?"
       }
-    }
-  }
 
-  // Post pipeline notifications
-  post {
-    success {
-      echo "✅ Pipeline başarıyla tamamlandı — Sonar geçti, image & chart Nexus’a gönderildi!"
-      emailext(
-        to: notifyEmail,
-        subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        body: """\
-Build başarılı 🎉
-
-Project: ${env.JOB_NAME}
-Build #: ${env.BUILD_NUMBER}
-URL: ${env.BUILD_URL}
-
-Jenkins Bot
-"""
-      )
-    }
-
-    failure {
-      echo "❌ Pipeline hata verdi, lütfen logları kontrol et."
-      emailext(
-        to: notifyEmail,
-        subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        body: """\
-Build FAILED ❗
-
-Project: ${env.JOB_NAME}
-Build #: ${env.BUILD_NUMBER}
-Loglar: ${env.BUILD_URL}
-
-Acil kontrol gerekli!
-"""
-      )
+      echo "✅ Manual approval granted, proceeding..."
     }
   }
 }

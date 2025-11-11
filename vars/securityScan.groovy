@@ -1,32 +1,36 @@
+// ───────────────────────────────────────────────────────────────
+// vars/securityScan.groovy
+// Çoklu güvenlik taraması (Sonar, Conftest, Trivy)
+// Kullanım: securityScan(trivy: 'enable', conftest: 'enable', sonar: 'enable')
+// ───────────────────────────────────────────────────────────────
+
 def call(Map params = [:]) {
 
-  // Defaults
-  boolean runSonar     = params.get('sonar', false)
-  boolean runTrivy     = params.get('trivy', false)
-  boolean runConftest  = params.get('conftest', false)
+  boolean runSonar    = params.get('sonar', '') == 'enable'
+  boolean runConftest = params.get('conftest', '') == 'enable'
+  boolean runTrivy    = params.get('trivy', '') == 'enable'
 
-  stage("Security Scan") {
+  stage('Security Scan') {
     script {
-
       if (!runSonar && !runTrivy && !runConftest) {
-        echo "🔒 Security scan skipped (no scanners enabled)"
+        echo "🟡 Security Scan skipped (no scanners enabled)"
         return
       }
 
       if (runSonar) {
         echo "▶️ Running SonarQube Scan..."
-        sonarScan()
-        qualityGate()
+        sonarScan(enable: 'enable')
+        qualityGate(enable: 'enable')
       }
 
       if (runConftest) {
         echo "▶️ Running Conftest (OPA policy check)..."
-        securityConftest()
+        securityConftest(enable: 'enable')
       }
 
       if (runTrivy) {
         echo "▶️ Running Trivy image scan..."
-        securityTrivy()
+        securityTrivy(enable: 'enable')
       }
     }
   }

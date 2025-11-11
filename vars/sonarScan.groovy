@@ -1,6 +1,17 @@
+// ───────────────────────────────────────────────────────────────
+// vars/sonarScan.groovy
+// SonarQube kod analizi
+// Kullanım: sonarScan(enable: 'enable')
+// ───────────────────────────────────────────────────────────────
+
 def call(Map params = [:]) {
-  def projectKey   = params.get('projectKey', "default-project")
-  def projectName  = params.get('projectName', projectKey)
+  if (params.get('enable', '') != 'enable' && params.get('sonar', '') != 'enable') {
+    echo "⏭️ SonarQube scan skipped (not enabled)"
+    return
+  }
+
+  def projectKey  = params.get('projectKey', env.JOB_NAME)
+  def projectName = params.get('projectName', projectKey)
 
   container('maven') {
     withSonarQubeEnv('sonar-server') {
