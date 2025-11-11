@@ -6,7 +6,7 @@
 
 def call(Map params = [:]) {
   if (params.get('enable', '') != 'enable' && params.get('sonar', '') != 'enable') {
-    echo "⏭️ Quality Gate check skipped (not enabled)"
+    echo "⏭Quality Gate check skipped (not enabled)"
     return
   }
 

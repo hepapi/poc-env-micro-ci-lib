@@ -13,7 +13,7 @@ def call(Map params = [:]) {
   stage('Manual Approval Before Helm Push') {
     script {
       if (!requireApproval) {
-        echo "🟡 Manual approval skipped (approval/status != 'enable')"
+        echo "Manual approval skipped (approval/status != 'enable')"
         return
       }
 
@@ -29,10 +29,10 @@ def call(Map params = [:]) {
       if (versionFile) {
         imageTag = sh(script: "cat ${versionFile}", returnStdout: true).trim()
       } else {
-        echo "⚠️ version.txt not found in root or srcrepo — continuing without tag info"
+        echo "version.txt not found in root or srcrepo — continuing without tag info"
       }
 
-      echo "✉️ Sending approval request email..."
+      echo "Sending approval request email..."
       emailext(
         to: notifyEmail,
         subject: "Approval Required: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
@@ -52,7 +52,7 @@ Lütfen Jenkins arayüzünden onay verin.
         input message: "Helm chart Nexus'a push edilsin ve ArgoCD tarafından deployment başlatılsın mı?"
       }
 
-      echo "✅ Manual approval granted, proceeding..."
+      echo "Manual approval granted, proceeding..."
     }
   }
 }

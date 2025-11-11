@@ -5,14 +5,14 @@
 
 def call(Map params = [:]) {
   if (params.get('enable', '') != 'enable' && params.get('sonar', '') != 'enable') {
-    echo "⏭️ SonarQube scan skipped (not enabled)"
+    echo "SonarQube scan skipped (not enabled)"
     return
   }
 
   // Jenkinsfile'daki SERVICE değişkenini otomatik al
   def serviceName = env.SERVICE ?: params.get('service', '')
   if (!serviceName?.trim()) {
-    echo "⚠️ SERVICE environment variable not found! Using JOB_NAME as fallback."
+    echo "SERVICE environment variable not found! Using JOB_NAME as fallback."
     serviceName = env.JOB_NAME
   }
 
@@ -20,9 +20,7 @@ def call(Map params = [:]) {
   def projectKey  = "${serviceName}".toLowerCase()
   def projectName = "${serviceName}-${env.ENV ?: 'default'}"
 
-  // 🔥 spring-petclinic örneğinde pom.xml repo kökünde
-  // ama genelde src/<service> içinde olabiliyor.
-  // Otomatik kontrol ekledik:
+
   def sourceDir = fileExists("srcrepo/src/${serviceName}/pom.xml") 
     ? "srcrepo/src/${serviceName}" 
     : "srcrepo"
@@ -45,5 +43,5 @@ def call(Map params = [:]) {
     }
   }
 
-  echo "✅ SonarQube analysis completed for project: ${projectName}"
+  echo "SonarQube analysis completed for project: ${projectName}"
 }

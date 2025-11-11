@@ -46,10 +46,10 @@ def call(Map params = [:]) {
           IMAGE_TAG="\$(cat version.txt)"
           FULL_IMAGE="${registry}/${imageRepo}/${service}-${environment}:\$IMAGE_TAG"
 
-          echo "📦 Build: \$FULL_IMAGE"
+          echo "Build: \$FULL_IMAGE"
           docker build -t "\$FULL_IMAGE" -f "${dockerfileName}" .
 
-          echo "🚀 Push: \$FULL_IMAGE"
+          echo "Push: \$FULL_IMAGE"
           docker push "\$FULL_IMAGE"
 
           # Export image bilgilerini pipeline environment'a yaz
@@ -59,7 +59,7 @@ def call(Map params = [:]) {
         """
       }
 
-      // 🔹 Jenkins environment’a import et
+      // Jenkins environment’a import et
       script {
         def envFile = readFile('srcrepo/' + contextPath + '/build_env.txt').trim().split('\n')
         envFile.each {
@@ -68,7 +68,7 @@ def call(Map params = [:]) {
         }
       }
 
-      echo "✅ Environment set:"
+      echo "Environment set:"
       echo "   REGISTRY:   ${env.REGISTRY}"
       echo "   REPO_PATH:  ${env.REPO_PATH}"
       echo "   IMAGE_NAME: ${env.IMAGE_NAME}"

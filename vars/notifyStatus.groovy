@@ -11,9 +11,9 @@ def call(Map params = [:]) {
   if (status == 'success') {
     emailext(
       to: notifyEmail,
-      subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+      subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
       body: """\
-Build başarılı 🎉
+Build başarılı 
 
 Project: ${env.JOB_NAME}
 Build #: ${env.BUILD_NUMBER}
@@ -23,9 +23,9 @@ URL: ${env.BUILD_URL}
   } else if (status == 'failure') {
     emailext(
       to: notifyEmail,
-      subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+      subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
       body: """\
-Build FAILED ❗
+Build FAILED 
 
 Project: ${env.JOB_NAME}
 Build #: ${env.BUILD_NUMBER}
@@ -33,6 +33,6 @@ Loglar: ${env.BUILD_URL}
 """
     )
   } else {
-    echo "ℹ️ No notification sent (unknown status)"
+    echo "No notification sent (unknown status)"
   }
 }

@@ -13,23 +13,23 @@ def call(Map params = [:]) {
   stage('Security Scan') {
     script {
       if (!runSonar && !runTrivy && !runConftest) {
-        echo "🟡 Security Scan skipped (no scanners enabled)"
+        echo "Security Scan skipped (no scanners enabled)"
         return
       }
 
       if (runSonar) {
-        echo "▶️ Running SonarQube Scan..."
+        echo "Running SonarQube Scan..."
         sonarScan(enable: 'enable')
         qualityGate(enable: 'enable')
       }
 
       if (runConftest) {
-        echo "▶️ Running Conftest (OPA policy check)..."
+        echo "Running Conftest (OPA policy check)..."
         securityConftest(enable: 'enable')
       }
 
       if (runTrivy) {
-        echo "▶️ Running Trivy image scan..."
+        echo "Running Trivy image scan..."
         securityTrivy(enable: 'enable')
       }
     }

@@ -16,7 +16,7 @@ def call(Map params = [:]) {
                     fileExists('srcrepo/version.txt') ? 'srcrepo/version.txt' : null
 
   if (!versionFile) {
-    error "❌ version.txt not found in workspace or srcrepo!"
+    error "version.txt not found in workspace or srcrepo!"
   }
 
   if (!image?.trim()) {
@@ -27,7 +27,7 @@ def call(Map params = [:]) {
   }
 
   container('trivy') {
-    echo "🔍 Running Trivy scan for image: ${image}"
+    echo "Running Trivy scan for image: ${image}"
     sh """
       trivy image --severity ${severity} --exit-code 1 \
       --cache-dir /root/.cache/trivy \
