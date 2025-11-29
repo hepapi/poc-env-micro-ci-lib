@@ -12,11 +12,10 @@ def call(Map params = [:]) {
     return
   }
 
-  echo "Running Conftest (OPA policy check)..."
+  echo "Running Conftest (OPA policy check with Hybrid Mode)..."
 
   container('conftest') {
 
-    // Hem root hem srcrepo altında arama
     def rootDockerfileExists     = fileExists('Dockerfile')
     def rootPolicyExists         = fileExists('dockerfile-conftest.rego')
     def srcrepoDockerfileExists  = fileExists('srcrepo/Dockerfile')
@@ -26,20 +25,35 @@ def call(Map params = [:]) {
       echo "Found Dockerfile and policy in root"
       sh '''
         set -euxo pipefail
-        conftest test --parser dockerfile --policy dockerfile-conftest.rego Dockerfile || true
+        conftest test --parser dockerfile --policy dockerfile-conftest.rego Dockerfile | tee conftest_result.txt
+
+        # FAIL varsa pipeline kır
+        if grep -q "FAIL" conftest_result.txt; then
+          echo "Conftest DENY rules triggered — failing pipeline"
+          exit 1
+        else
+          echo "No DENY findings — continuing pipeline"
+        fi
       '''
-    } else if (srcrepoDockerfileExists && srcrepoPolicyExists) {
+    } 
+    else if (srcrepoDockerfileExists && srcrepoPolicyExists) {
       echo "Found Dockerfile and policy in srcrepo/"
       dir('srcrepo') {
         sh '''
           set -euxo pipefail
-          conftest test --parser dockerfile --policy dockerfile-conftest.rego Dockerfile || true
+          conftest test --parser dockerfile --policy dockerfile-conftest.rego Dockerfile | tee conftest_result.txt
+
+          if grep -q "FAIL" conftest_result.txt; then
+            echo "Conftest DENY rules triggered — failing pipeline"
+            exit 1
+          else
+            echo "No DENY findings — continuing pipeline"
+          fi
         '''
       }
-    } else {
+    } 
+    else {
       echo "Dockerfile or dockerfile-conftest.rego not found — skipping Conftest!"
-      sh 'ls -al || true'
-      sh 'ls -al srcrepo || true'
     }
   }
 }
