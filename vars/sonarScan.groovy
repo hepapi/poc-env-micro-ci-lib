@@ -18,7 +18,7 @@ def call(Map params = [:]) {
 
   // Otomatik Project Key ve Name
   def projectKey  = "${serviceName}".toLowerCase()
-  def projectName = "${serviceName}-${env.ENV ?: 'default'}"
+  def projectName = "${serviceName}-${env.ENV ?: 'unknown'}"
 
 
   def sourceDir = fileExists("srcrepo/src/${serviceName}/pom.xml") 
