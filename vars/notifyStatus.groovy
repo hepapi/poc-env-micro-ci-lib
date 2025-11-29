@@ -13,7 +13,7 @@ def call(Map params = [:]) {
       to: notifyEmail,
       subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
       body: """\
-Build başarılı 
+Pipeline başarıyla tamamlandı
 
 Project: ${env.JOB_NAME}
 Build #: ${env.BUILD_NUMBER}
@@ -25,7 +25,7 @@ URL: ${env.BUILD_URL}
       to: notifyEmail,
       subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
       body: """\
-Build FAILED 
+Pipeline başarısız oldu!
 
 Project: ${env.JOB_NAME}
 Build #: ${env.BUILD_NUMBER}

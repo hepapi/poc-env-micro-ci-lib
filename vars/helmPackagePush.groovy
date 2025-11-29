@@ -46,7 +46,7 @@ def call(Map params = [:]) {
         # Update image repo
         sed -i "s#\\(repository:\\).*#\\1 ${Config.REGISTRY}/${Config.IMAGE_REPO}/${service}-${environment}#" helm-cur-chart/values.yaml
 
-        helm lint ./helm-cur-chart || true
+        helm lint ./helm-cur-chart 
         helm package ./helm-cur-chart
       """
 
