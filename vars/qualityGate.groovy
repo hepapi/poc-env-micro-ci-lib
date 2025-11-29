@@ -1,7 +1,7 @@
 // ───────────────────────────────────────────────────────────────
 // vars/qualityGate.groovy
 // SonarQube Quality Gate kontrolü
-// Kullanım: qualityGate(enable: 'enable')
+// Kullanım: sonar: 'enable'
 // ───────────────────────────────────────────────────────────────
 
 def call(Map params = [:]) {
@@ -10,7 +10,7 @@ def call(Map params = [:]) {
     return
   }
 
-  timeout(time: 3, unit: 'MINUTES') {
+  timeout(time: 5, unit: 'MINUTES') {
     waitForQualityGate abortPipeline: true
   }
 }
