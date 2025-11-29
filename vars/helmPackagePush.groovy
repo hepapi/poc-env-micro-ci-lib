@@ -41,10 +41,10 @@ def call(Map params = [:]) {
         sed -i "s/^appVersion:.*/appVersion: \${VERSION}/" helm-cur-chart/Chart.yaml
 
         # Update image tag
-        sed -i "s#\\(tag:\\).*#\\1 \${VERSION}#" helm-cur-chart/values.yaml || true
+        sed -i "s#\\(tag:\\).*#\\1 \${VERSION}#" helm-cur-chart/values.yaml
 
         # Update image repo
-        sed -i "s#\\(repository:\\).*#\\1 ${Config.REGISTRY}/${Config.IMAGE_REPO}/${service}-${environment}#" helm-cur-chart/values.yaml || true
+        sed -i "s#\\(repository:\\).*#\\1 ${Config.REGISTRY}/${Config.IMAGE_REPO}/${service}-${environment}#" helm-cur-chart/values.yaml
 
         helm lint ./helm-cur-chart || true
         helm package ./helm-cur-chart
