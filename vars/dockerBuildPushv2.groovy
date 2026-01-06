@@ -9,7 +9,7 @@ def call(Map params = [:]) {
   final String registry  = (params.registry ?: Config.REGISTRY) as String
   final String imageRepo = (params.imageRepo ?: Config.IMAGE_REPO) as String
   final String credsId   = (params.credsId   ?: Config.CREDS_ID) as String
-  // 🔥 Private repo için eklendi
+  // Private repo için eklendi
   final String gitCredsId = (params.gitCredsId ?: "") as String
   if (!service)  error "[dockerBuildPush] 'service' parametresi zorunludur."
   if (!gitRepo)  error "[dockerBuildPush] 'gitRepo' parametresi zorunludur."
@@ -31,7 +31,7 @@ def call(Map params = [:]) {
           git clone -b '${gitBranch}' '${gitRepo}' srcrepo
         """
       }
-      // ✅ Her iki durumda da geçerli olacak
+      // Her iki durumda da geçerli olacak
       sh """
         set -euxo pipefail
         cd srcrepo/'${contextPath}'
